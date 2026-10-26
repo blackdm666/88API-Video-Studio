@@ -33,7 +33,7 @@ node studio.mjs preflight --scope image --json
 node studio.mjs preflight --scope video --json
 ```
 
-API Key读取优先级：`SEEDANCE_STUDIO_API_KEY` → `~/.seedance-studio/config.json` → `~/.codex/88api-image-gen-config.json` → `~/.codex/88api-nano-banana-config.json`。预检只输出来源、脱敏值和有效性。图片任务只需要API Key；个人访问令牌仅用于账户、价格和视频目录查询。
+API Key读取优先级：`SEEDANCE_STUDIO_API_KEY` → `API88_KEY` → `~/.88api/video-studio.json`（0.12.0 之前是 `~/.seedance-studio/config.json`）→ 88API-image-gen 的 `~/.88api/image-gen.json` → 旧位置 `~/.codex/88api-image-gen-config.json`、`~/.88api/nano-banana.json`、`~/.codex/88api-nano-banana-config.json`。`API88_CONFIG_DIR` 可改 `~/.88api` 目录。预检只输出来源、脱敏值和有效性。图片任务只需要API Key；个人访问令牌仅用于账户、价格和视频目录查询。
 
 | 接口 | 用途 | 关键字段 |
 |---|---|---|

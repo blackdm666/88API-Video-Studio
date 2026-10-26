@@ -23,7 +23,7 @@ import {
   fetchVideoCatalog,
   fetchAccount,
   priceLabel,
-} from "../plugins/seedance-studio/scripts/studio.mjs";
+} from "../plugins/seedance-studio/skills/seedance-studio/scripts/studio.mjs";
 
 test("first-use introduction covers all main workflows and chat-first credential setup", () => {
   const intro = ONBOARDING_LINES.join("\n");
@@ -54,11 +54,12 @@ test("chat-provided access token is verified, saved, masked and does not trigger
 
   const home = mkdtempSync(join(tmpdir(), "seedance-chat-token-"));
   t.after(() => rmSync(home, { recursive: true, force: true }));
-  const configDir = join(home, ".seedance-studio");
-  mkdirSync(configDir, { recursive: true });
+  // Settings from a pre-0.12 install live in ~/.seedance-studio; the first save moves them to ~/.88api.
+  const legacyDir = join(home, ".seedance-studio");
+  mkdirSync(legacyDir, { recursive: true });
   const { port } = server.address();
-  writeFileSync(join(configDir, "config.json"), JSON.stringify({ baseUrl: `http://127.0.0.1:${port}` }));
-  const cliPath = fileURLToPath(new URL("../plugins/seedance-studio/scripts/studio.mjs", import.meta.url));
+  writeFileSync(join(legacyDir, "config.json"), JSON.stringify({ baseUrl: `http://127.0.0.1:${port}` }));
+  const cliPath = fileURLToPath(new URL("../plugins/seedance-studio/skills/seedance-studio/scripts/studio.mjs", import.meta.url));
   const env = { ...process.env, USERPROFILE: home, HOME: home };
   delete env.SEEDANCE_STUDIO_ACCESS_TOKEN;
   delete env.RELAY_88API_ACCESS_TOKEN;
@@ -73,9 +74,45 @@ test("chat-provided access token is verified, saved, masked and does not trigger
   assert.equal(code, 0, stderr);
   assert.doesNotMatch(stdout, new RegExp(token));
   assert.doesNotMatch(stdout, /立即撤销|重新创建/);
-  const saved = JSON.parse(readFileSync(join(configDir, "config.json"), "utf8"));
+  const saved = JSON.parse(readFileSync(join(home, ".88api", "video-studio.json"), "utf8"));
   assert.equal(saved.accessToken, token);
   assert.equal(saved.userId, "7");
+  assert.equal(saved.baseUrl, `http://127.0.0.1:${port}`);
+});
+
+test("preflight reuses the Key that 88API-image-gen saved in ~/.88api", async (t) => {
+  const server = createServer((req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    if (req.url === "/v1/models" && req.headers.authorization === "Bearer shared-88api-key") {
+      res.end(JSON.stringify({ data: [{ id: "gpt-image-2" }] }));
+      return;
+    }
+    res.statusCode = req.url === "/v1/models" ? 401 : 404;
+    res.end(JSON.stringify({ error: { message: "nope" } }));
+  });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  t.after(() => server.close());
+  const home = mkdtempSync(join(tmpdir(), "seedance-88api-dir-"));
+  t.after(() => rmSync(home, { recursive: true, force: true }));
+  const dir = join(home, ".88api");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "video-studio.json"), JSON.stringify({ baseUrl: `http://127.0.0.1:${server.address().port}` }));
+  writeFileSync(join(dir, "image-gen.json"), JSON.stringify({ workers: [{ id: "default", apiKey: "shared-88api-key", enabled: true }], model: "gpt-image-2" }));
+  const cliPath = fileURLToPath(new URL("../plugins/seedance-studio/skills/seedance-studio/scripts/studio.mjs", import.meta.url));
+  const env = { ...process.env, USERPROFILE: home, HOME: home };
+  delete env.SEEDANCE_STUDIO_API_KEY;
+  delete env.API88_KEY;
+  delete env.API88_CONFIG_DIR;
+  const child = spawn(process.execPath, [cliPath, "preflight", "--scope", "image", "--json"], { env, windowsHide: true });
+  let stdout = "", stderr = "";
+  child.stdout.on("data", (chunk) => { stdout += chunk; });
+  child.stderr.on("data", (chunk) => { stderr += chunk; });
+  const [code] = await once(child, "close");
+  assert.equal(code, 0, stderr);
+  const preflight = JSON.parse(stdout);
+  assert.equal(preflight.ready, true);
+  assert.match(preflight.apiKey.source, /[\\/]\.88api[\\/]image-gen\.json$/);
 });
 
 test("image preflight reuses the Image2 plugin Key and keeps gpt-image-2 as the default", async (t) => {
@@ -106,7 +143,7 @@ test("image preflight reuses the Image2 plugin Key and keeps gpt-image-2 as the 
   const { port } = server.address();
   writeFileSync(join(seedanceConfigDir, "config.json"), JSON.stringify({ baseUrl: `http://127.0.0.1:${port}`, apiKey: "expired-seedance-key", imageModel: "gemini-3.1-flash-image" }));
   writeFileSync(join(codexDir, "88api-image-gen-config.json"), JSON.stringify({ workers: [{ name: "default", apiKey: "shared-image2-key", enabled: true }], model: "gpt-image-2" }));
-  const cliPath = fileURLToPath(new URL("../plugins/seedance-studio/scripts/studio.mjs", import.meta.url));
+  const cliPath = fileURLToPath(new URL("../plugins/seedance-studio/skills/seedance-studio/scripts/studio.mjs", import.meta.url));
   const env = { ...process.env, USERPROFILE: home, HOME: home };
   delete env.SEEDANCE_STUDIO_API_KEY;
   const runCli = (args) => new Promise((resolveRun) => {
@@ -151,7 +188,7 @@ test("Image 2.5 presets survive config and preflight and route generation and ed
   const configPath = join(home, ".seedance-studio", "config.json");
   const reference = join(home, "reference.png");
   writeFileSync(reference, Buffer.from("89504e470d0a1a0a", "hex"));
-  const cliPath = fileURLToPath(new URL("../plugins/seedance-studio/scripts/studio.mjs", import.meta.url));
+  const cliPath = fileURLToPath(new URL("../plugins/seedance-studio/skills/seedance-studio/scripts/studio.mjs", import.meta.url));
   const env = { ...process.env, USERPROFILE: home, HOME: home, SEEDANCE_STUDIO_API_KEY: "mock-key" };
   const runCli = (args) => new Promise((resolveRun, reject) => {
     const child = spawn(process.execPath, [cliPath, ...args], { env, windowsHide: true });

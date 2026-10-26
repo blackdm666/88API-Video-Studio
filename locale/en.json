@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "88API-Video-Studio",
+    "description": "一个插件调用 88API 全部视频模型，一句话出短片和广告片，还能反推参考视频。适配 Claude、Codex、ZCode、DSH 等多种客户端！"
+  }
+}

@@ -9,8 +9,8 @@ import { createHash } from "node:crypto";
 import {
   explicitVideoAdapter, inferVideoCapabilities, endpointCompatible, isVideoCatalogRow, normalizeVideoPrice, priceLabel,
   buildVideoPayload, buildReferenceAudit, prepareVideoMedia, fetchVideoCatalog, cmdVideo, pollTask,
-} from "../plugins/seedance-studio/scripts/studio.mjs";
-import { mergeVideoCapabilities, priceForVideoRequest, estimateVideoCost } from "../plugins/seedance-studio/scripts/video-contract.mjs";
+} from "../plugins/seedance-studio/skills/seedance-studio/scripts/studio.mjs";
+import { mergeVideoCapabilities, priceForVideoRequest, estimateVideoCost } from "../plugins/seedance-studio/skills/seedance-studio/scripts/video-contract.mjs";
 
 const fixture = JSON.parse(readFileSync(new URL("./fixtures/video-pricing-2026-09-17.json", import.meta.url), "utf8"));
 const status = { success: true, data: { quota_per_unit: 500000, quota_display_type: "CNY" } };
