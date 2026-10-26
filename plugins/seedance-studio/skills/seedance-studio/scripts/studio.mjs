@@ -282,7 +282,7 @@ function requireKey(cfg) {
   return cfg.apiKey;
 }
 function requireAccessToken(cfg) {
-  if (!cfg.accessToken) die('未配置 88API 个人访问令牌。请登录 https://88api.ai/，进入“个人资料 → 安全”，创建系统访问令牌后交给 Agent 一键配置。访问令牌只用于读取账户余额、模型目录、价格和可用状态，不用于付费生成。');
+  if (!cfg.accessToken) die('未配置 88API 个人访问令牌。请登录 https://88api.ai/，进入左侧“安全与访问 → 访问令牌 → 创建访问令牌”（权限只勾选“查看”类），创建后交给 Agent 一键配置。访问令牌只用于读取账户余额、模型目录、价格和可用状态，不用于付费生成。');
   return cfg.accessToken;
 }
 async function api(cfg, method, path, body) {

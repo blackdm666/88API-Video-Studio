@@ -27,7 +27,7 @@ node "<SKILL_DIR>/scripts/studio.mjs" <参数>
    介绍后执行 `--mark-onboarding-shown`，然后继续用户刚才的需求；不要让用户重新描述。
 2. 插件使用两种不同凭据：
    - **API Key**：调用 `/v1/*` 生成端点；在 88API“API 密钥”创建，建议选择 `auto` 分组。
-   - **个人访问令牌**：只读调用 `/api/user/self`、`/api/pricing`、`/api/status`、`/api/user/models`，用于余额、实时价格和可用状态；在“个人资料 → 安全”创建。它不是 API Key。
+   - **个人访问令牌**：只读调用 `/api/user/self`、`/api/pricing`、`/api/status`、`/api/user/models`，用于余额、实时价格和可用状态；在 88API 控制台左侧“安全与访问 → 访问令牌 → 创建访问令牌”创建，权限只需勾选“查看”类。它不是 API Key。
 3. 只根据 preflight 的结构化结果询问缺失项：
    - 图片任务只需要 API Key；`apiKey.configured=true` 且 `apiKey.valid=true` 时直接生成，不得索要访问令牌或再次询问Key。
    - 视频模型目录和正式出片需要 API Key 与个人访问令牌；只询问 preflight 明确缺失或验证失败的那一项。
