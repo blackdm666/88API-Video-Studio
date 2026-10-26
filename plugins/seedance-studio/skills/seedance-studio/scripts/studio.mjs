@@ -11,7 +11,7 @@ import { pipeline } from "node:stream/promises";
 import { createHash } from "node:crypto";
 import { DEFAULT_VIDEO_ADAPTER, VIDEO_MODEL_ADAPTERS, mergeVideoCapabilities, parseVideoPriceExpression, priceForVideoRequest, estimateVideoCost } from "./video-contract.mjs";
 
-const PLUGIN_VERSION = "0.12.0";
+const PLUGIN_VERSION = "0.12.1";
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const SCRIPT_DIR = dirname(SCRIPT_PATH);
 

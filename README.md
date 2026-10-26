@@ -189,7 +189,7 @@ node plugins/seedance-studio/skills/seedance-studio/scripts/studio.mjs concat --
 
 ## 项目信息
 
-- 版本：`0.12.0`
+- 版本：`0.12.1`
 - GitHub：[blackdm666/88API-Video-Studio](https://github.com/blackdm666/88API-Video-Studio)（原 `seedance-studio`，旧地址自动跳转）
 - 插件名：`seedance-studio@seedance-studio-plugins`（Claude Code、Codex、ZCode 相同）；DeepSeek Harness 插件包名 `seedance-studio`
 - 更新记录：[CHANGELOG.md](CHANGELOG.md)
