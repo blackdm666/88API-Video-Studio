@@ -1,7 +1,7 @@
 {
   "name": "seedance-studio",
   "displayName": "88API-Video-Studio",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "description": "一个插件调用 88API 全部视频模型，一句话出短片和广告片，还能反推参考视频。适配 Claude、Codex、ZCode、DSH 等多种客户端！",
   "icon": "./assets/plugin-logo.png",
   "author": {
