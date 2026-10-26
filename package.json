@@ -1,0 +1,61 @@
+{
+  "name": "seedance-studio",
+  "version": "0.12.0",
+  "description": "一个插件调用 88API 全部视频模型，一句话出短片和广告片，还能反推参考视频。适配 Claude、Codex、ZCode、DSH 等多种客户端！",
+  "icon": "plugins/seedance-studio/assets/plugin-logo.png",
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "88api",
+    "video-generation",
+    "seedance"
+  ],
+  "author": {
+    "name": "88api.ai",
+    "url": "https://88api.ai/"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blackdm666/88API-Video-Studio.git"
+  },
+  "homepage": "https://github.com/blackdm666/88API-Video-Studio#readme",
+  "bugs": {
+    "url": "https://github.com/blackdm666/88API-Video-Studio/issues"
+  },
+  "type": "module",
+  "main": "./dsh/index.js",
+  "exports": {
+    ".": "./dsh/index.js",
+    "./locale/*": "./locale/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dsh/",
+    "locale/",
+    "plugins/seedance-studio/skills/",
+    "plugins/seedance-studio/assets/plugin-logo.png",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "THIRD-PARTY-NOTICES.md",
+    "THIRD-PARTY-LICENSE-seedance25os.txt"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./dsh/cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "check": "node --check dsh/index.js && node --test dsh/package.test.mjs tests/*.test.mjs"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-skill-filesystem": "*"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-skill-filesystem": {
+      "optional": true
+    }
+  }
+}

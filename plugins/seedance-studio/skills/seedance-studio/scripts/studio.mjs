@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // seedance-studio CLI — 88api.ai dynamic video catalog + gpt-image keyframes
-// Zero-dependency Node 18+. Config: ~/.seedance-studio/config.json
+// Zero-dependency Node 18+. Config: ~/.88api/video-studio.json (shared folder with 88API-image-gen)
 import { readFileSync, writeFileSync, mkdirSync, existsSync, createWriteStream, readdirSync, statSync, chmodSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve, extname, dirname, basename } from "node:path";
@@ -11,13 +11,19 @@ import { pipeline } from "node:stream/promises";
 import { createHash } from "node:crypto";
 import { DEFAULT_VIDEO_ADAPTER, VIDEO_MODEL_ADAPTERS, mergeVideoCapabilities, parseVideoPriceExpression, priceForVideoRequest, estimateVideoCost } from "./video-contract.mjs";
 
+const PLUGIN_VERSION = "0.12.0";
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const SCRIPT_DIR = dirname(SCRIPT_PATH);
 
-const CONFIG_DIR = join(homedir(), ".seedance-studio");
-const CONFIG_PATH = join(CONFIG_DIR, "config.json");
+// Client-neutral config folder shared with 88API-image-gen; API88_CONFIG_DIR overrides it.
+const CONFIG_DIR_OVERRIDDEN = !!String(process.env.API88_CONFIG_DIR || "").trim();
+const CONFIG_DIR = CONFIG_DIR_OVERRIDDEN ? resolve(String(process.env.API88_CONFIG_DIR).trim()) : join(homedir(), ".88api");
+const CONFIG_PATH = join(CONFIG_DIR, "video-studio.json");
+// Saved by versions before 0.12.0; read until the first save to CONFIG_PATH.
+const LEGACY_CONFIG_PATH = join(homedir(), ".seedance-studio", "config.json");
+const IMAGE_GEN_CONFIG_PATH = join(CONFIG_DIR, "image-gen.json");
 const IMAGE2_CONFIG_PATH = join(homedir(), ".codex", "88api-image-gen-config.json");
-const NANO_CONFIG_PATH = join(homedir(), ".codex", "88api-nano-banana-config.json");
+const NANO_CONFIG_PATHS = [join(CONFIG_DIR, "nano-banana.json"), join(homedir(), ".codex", "88api-nano-banana-config.json")];
 const DEFAULTS = {
   baseUrl: "https://88api.ai",
   videoModel: "",
@@ -141,10 +147,16 @@ const ONBOARDING_LINES = [
   "首次付费生成前需要配置 88API API Key 与个人访问令牌，并从实时模型列表中由你明确选择视频模型。两项凭据都可在可信聊天中直接交给 Agent 一键配置；个人访问令牌也保留本机隐藏输入方式。",
 ];
 
+function storedConfigPath() {
+  if (existsSync(CONFIG_PATH) || CONFIG_DIR_OVERRIDDEN) return CONFIG_PATH;
+  return existsSync(LEGACY_CONFIG_PATH) ? LEGACY_CONFIG_PATH : CONFIG_PATH;
+}
 function readStoredConfig() {
-  if (!existsSync(CONFIG_PATH)) return {};
-  try { return JSON.parse(readFileSync(CONFIG_PATH, "utf8")); }
-  catch { return {}; }
+  return readJsonConfig(storedConfigPath());
+}
+function firstWorkerKey(config) {
+  const worker = Array.isArray(config.workers) ? config.workers.find((w) => w && w.apiKey && w.enabled !== false) : null;
+  return worker ? worker.apiKey : config.apiKey;
 }
 function readJsonConfig(path) {
   if (!existsSync(path)) return {};
@@ -160,12 +172,10 @@ function resolveApiKeyCandidates(stored) {
   };
   const envKey = firstEnv(ENV.apiKey);
   add(envKey, "SEEDANCE_STUDIO_API_KEY");
-  add(stored.apiKey, CONFIG_PATH);
-  const image2 = readJsonConfig(IMAGE2_CONFIG_PATH);
-  const image2Worker = Array.isArray(image2.workers) ? image2.workers.find((worker) => worker && worker.apiKey && worker.enabled !== false) : null;
-  if (image2Worker) add(image2Worker.apiKey, IMAGE2_CONFIG_PATH);
-  const nano = readJsonConfig(NANO_CONFIG_PATH);
-  add(nano.apiKey, NANO_CONFIG_PATH);
+  add(String(process.env.API88_KEY || "").trim(), "API88_KEY");
+  add(stored.apiKey, storedConfigPath());
+  // The Key saved by 88API-image-gen (any client), then its older locations.
+  for (const path of [IMAGE_GEN_CONFIG_PATH, IMAGE2_CONFIG_PATH, ...NANO_CONFIG_PATHS]) add(firstWorkerKey(readJsonConfig(path)), path);
   return candidates;
 }
 function firstEnv(names) {
@@ -196,9 +206,16 @@ function loadConfig() {
   };
 }
 function saveConfigPatch(patch) {
-  mkdirSync(CONFIG_DIR, { recursive: true });
   const stored = readStoredConfig();
-  writeFileSync(CONFIG_PATH, JSON.stringify({ ...stored, ...patch }, null, 2), { encoding: "utf8", mode: 0o600 });
+  try {
+    mkdirSync(CONFIG_DIR, { recursive: true });
+    writeFileSync(CONFIG_PATH, JSON.stringify({ ...stored, ...patch }, null, 2), { encoding: "utf8", mode: 0o600 });
+  } catch (error) {
+    if (!["EPERM", "EACCES", "EROFS"].includes(error?.code)) throw error;
+    // Sandboxed clients (DeepSeek Harness, Codex workspace-write) block writes outside the workspace.
+    die("配置没有保存：" + CONFIG_DIR + " 在当前客户端里不可写（" + error.code + "）。请让客户端批准这一条命令写入一次后重试，"
+      + "或在客户端环境里设置 API88_KEY / SEEDANCE_STUDIO_ACCESS_TOKEN。配置不会改存到工作目录等其它位置。");
+  }
   try { chmodSync(CONFIG_PATH, 0o600); } catch { /* Windows may not expose POSIX mode bits. */ }
 }
 function mask(k) {
@@ -231,7 +248,7 @@ function upstreamHint(msg) {
 // 确定性错误的对症提示（换模型也没用，先修这里）
 function fatalHint(msg) {
   const s = String(msg || "").toLowerCase();
-  if (/http 401|unauthorized|invalid api key|incorrect api key|missing api key/.test(s)) return "\n[诊断] Key 缺失、无效或无权限。通过 Codex 使用时，请把可用的 88API Key 交给 Agent，由 Agent 一键重设并脱敏验证。";
+  if (/http 401|unauthorized|invalid api key|incorrect api key|missing api key/.test(s)) return "\n[诊断] Key 缺失、无效或无权限。在 Agent 客户端里使用时，请把可用的 88API Key 交给 Agent，由 Agent 一键重设并脱敏验证。";
   if (/content[_ ]?(policy|moderat)|moderation|nsfw|内容审核/.test(s)) return "\n[诊断] 内容审核未通过（非上游故障）→ 调整提示词/参考图后再试，勿反复重交。";
   if (/model_not_found|not supported model/.test(s)) return "\n[诊断] 模型名/端点不匹配 → 检查 --model（内置 gpt-image-2、gpt-image-2-4k、gpt-image-2.5-flare、gpt-image-2.5-sunburst，也支持自定义 images 模型 id）。";
   if (/http 400|invalid parameter/.test(s)) return "\n[诊断] 请求参数不合法 → 检查 --aspect / --ref（参考图是否可读、是否 >8MB）。";
@@ -261,7 +278,7 @@ function parseArgs(argv) {
 function asArray(v) { return v === undefined ? [] : Array.isArray(v) ? v : [v]; }
 
 function requireKey(cfg) {
-  if (!cfg.apiKey) die('未配置 API Key。通过 Codex 使用时，请把 88API Key 发给 Agent，由 Agent 为你一键配置；无需自己运行 PowerShell。');
+  if (!cfg.apiKey) die('未配置 API Key。在 Agent 客户端里使用时，请把 88API Key 发给 Agent，由 Agent 为你一键配置；无需自己运行 PowerShell。');
   return cfg.apiKey;
 }
 function requireAccessToken(cfg) {
@@ -1648,15 +1665,21 @@ async function cmdCaps(cfg) {
 // ---------- main ----------
 async function main(argv = process.argv.slice(2)) {
   const args = parseArgs(argv);
+  if (args["version"]) { log("88API-Video-Studio " + PLUGIN_VERSION); return; }
   const cfg = loadConfig();
   if (args["set-key"]) { cfg.apiKey = String(args["set-key"]); saveConfigPatch({ apiKey: cfg.apiKey }); log("API Key 已保存到 " + CONFIG_PATH + "（" + mask(cfg.apiKey) + "）"); return; }
   if (args["set-access-token"]) return cmdSetAccessToken(cfg, args["set-access-token"]);
   if (args["configure-access-token"]) return cmdConfigureAccessToken();
-  if (args["mark-onboarding-shown"]) { saveConfigPatch({ onboardingShown: true, onboardingShownAt: new Date().toISOString() }); log("首次使用介绍已标记完成。"); return; }
+  if (args["mark-onboarding-shown"]) {
+    // Not worth stopping the user's task over: in a read-only sandbox the intro simply shows again next time.
+    try { saveConfigPatch({ onboardingShown: true, onboardingShownAt: new Date().toISOString() }); log("首次使用介绍已标记完成。"); }
+    catch (error) { if (!error.isDie) throw error; log("NOTICE: 首次使用介绍没能标记（配置目录不可写），下次可能会再介绍一次；继续当前任务即可。"); }
+    return;
+  }
   if (args["set-video-model"]) return cmdSetVideoModel(cfg, String(args["set-video-model"]));
   if (args["set-base-url"]) { cfg.baseUrl = String(args["set-base-url"]).replace(/\/$/, ""); saveConfigPatch({ baseUrl: cfg.baseUrl }); log("baseUrl = " + cfg.baseUrl); return; }
   if (args["config-path"]) { log(CONFIG_PATH); return; }
-  if (args["get-config"]) { log(JSON.stringify({ configPath: CONFIG_PATH, baseUrl: cfg.baseUrl, apiKey: mask(cfg.apiKey), apiKeySource: cfg.apiKeySource, accessToken: mask(cfg.accessToken), userId: cfg.userId || "(auto)", videoModel: cfg.videoModel || "(not selected)", imageModel: IMG_MODELS[cfg.imageModel] ? cfg.imageModel : DEFAULTS.imageModel, audioModel: AUDIO_MODEL_DEFAULT, onboardingShown: Boolean(cfg.onboardingShown) }, null, 2)); return; }
+  if (args["get-config"]) { log(JSON.stringify({ pluginVersion: PLUGIN_VERSION, configPath: CONFIG_PATH, baseUrl: cfg.baseUrl, apiKey: mask(cfg.apiKey), apiKeySource: cfg.apiKeySource, accessToken: mask(cfg.accessToken), userId: cfg.userId || "(auto)", videoModel: cfg.videoModel || "(not selected)", imageModel: IMG_MODELS[cfg.imageModel] ? cfg.imageModel : DEFAULTS.imageModel, audioModel: AUDIO_MODEL_DEFAULT, onboardingShown: Boolean(cfg.onboardingShown) }, null, 2)); return; }
   if (args["caps"] || args["capabilities"]) return cmdCaps(cfg);
   if (args["self-test"]) return cmdSelfTest(cfg);
   const cmd = args._[0];
@@ -1675,7 +1698,8 @@ async function main(argv = process.argv.slice(2)) {
     '  配置生成 Key: node studio.mjs --set-key "sk-..."',
     '  聊天配置访问令牌: node studio.mjs --set-access-token "<令牌>"（优先；自动验证并脱敏保存）',
     '  隐藏输入访问令牌: node studio.mjs --configure-access-token（备用；不写配置文件）',
-    '  首次介绍: node studio.mjs intro | --mark-onboarding-shown',
+    '  版本: node studio.mjs --version',
+  '  首次介绍: node studio.mjs intro | --mark-onboarding-shown',
     '  强制预检: node studio.mjs preflight --scope image|video|account|all [--json]',
     '  查账户: node studio.mjs account [--json]',
     '  查视频模型: node studio.mjs models [--json] [--no-key-check]',

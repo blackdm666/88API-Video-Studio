@@ -49,13 +49,13 @@ ffmpeg -y -ss <起点秒> -t <时长> -i "<视频>" -vf "fps=8,scale=640:-1" fra
 
 ```powershell
 # 人物/模特/产品片（有硬几何、要看身体朝向与前后景）→ 深度为主
-node "<PLUGIN_ROOT>/scripts/studio.mjs" depth --video "<视频>" --mode character --fps 4 --out "<project>/analysis"
+node "<SKILL_DIR>/scripts/studio.mjs" depth --video "<视频>" --mode character --fps 4 --out "<project>/analysis"
 # 宏大风景/山河/云海/建筑空镜（无人物或人物只是比例点）→ 运动+原帧为主，跳过深度
-node "<PLUGIN_ROOT>/scripts/studio.mjs" depth --video "<视频>" --mode landscape --fps 2 --out "<project>/analysis"
+node "<SKILL_DIR>/scripts/studio.mjs" depth --video "<视频>" --mode landscape --fps 2 --out "<project>/analysis"
 # 武打/舞蹈/快速动作（招式在零点几秒内）→ 多人骨架 + 运动 + 深度，高帧率
-node "<PLUGIN_ROOT>/scripts/studio.mjs" depth --video "<视频>" --mode action --fps 8 --out "<project>/analysis"
+node "<SKILL_DIR>/scripts/studio.mjs" depth --video "<视频>" --mode action --fps 8 --out "<project>/analysis"
 # 拿不准 → 两种都出，读帧自己挑（默认）
-node "<PLUGIN_ROOT>/scripts/studio.mjs" depth --video "<视频>" --mode auto --out "<project>/analysis"
+node "<SKILL_DIR>/scripts/studio.mjs" depth --video "<视频>" --mode auto --out "<project>/analysis"
 ```
 
 **怎么判题材**：看 ② 的联系表——画面主角是**人/模特/产品/动物**（有清晰前景主体、要看动作与朝向）走 `character`；主角是**山河/云海/城市天际线/建筑空镜/大气氛围**（主体是空间与光，人物缺席或只是渺小比例点）走 `landscape`；**打斗/武打/舞蹈/体育等快速肢体动作**（要逐招看肢体轨迹、两人相对站位）走 `action`；混合片（人物在宏大场景里演）用 `auto`。
@@ -153,7 +153,7 @@ node "<PLUGIN_ROOT>/scripts/studio.mjs" depth --video "<视频>" --mode auto --o
 **为什么单列一段**：画面只讲了一半故事——台词、音效、BGM 情绪承载另一半。88API 当前没有可用的专用 STT 渠道，所以默认走 **Gemini 3.7 Flash 多模态**，一条命令拆出三样：
 
 ```powershell
-node "<PLUGIN_ROOT>/scripts/studio.mjs" audio --video "<视频>" --out "<project>/analysis/audio"
+node "<SKILL_DIR>/scripts/studio.mjs" audio --video "<视频>" --out "<project>/analysis/audio"
 # 只拆某段：加 --start 8 --end 16（秒）
 # 直接给音频文件：--audio clip.mp3（跳过抽音）
 # 默认模型：gemini-3.7-flash；只有用户明确同意时才用 --model 临时指定其它支持 input_audio 的模型

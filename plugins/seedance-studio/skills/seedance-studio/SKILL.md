@@ -9,11 +9,13 @@ description: 三大工作流的一站式 88API 短片工作室：实时获取视
 
 ## 运行时定位
 
-定位本 `SKILL.md` 所在目录，向上两级得到 `<PLUGIN_ROOT>`，所有 API 与拼接调用通过：
+`<SKILL_DIR>` 是本 `SKILL.md` 所在目录，CLI 就在它旁边。所有 API 与拼接调用通过：
 
 ```powershell
-node "<PLUGIN_ROOT>/scripts/studio.mjs" <参数>
+node "<SKILL_DIR>/scripts/studio.mjs" <参数>
 ```
+
+按本文件实际加载的位置把 `<SKILL_DIR>` 换成绝对路径；不要假设固定的插件市场或技能缓存路径，也不要把脚本复制到别处。插件可以装在 Codex、Claude Code、ZCode、DeepSeek Harness、Trae 等任何能运行本机 Node.js 18+ 的 Agent 客户端里，规则相同，客户端差异见下方“客户端与长任务”。
 
 ## 首次使用：主动介绍、双凭据与模型选择
 
@@ -37,7 +39,9 @@ node "<PLUGIN_ROOT>/scripts/studio.mjs" <参数>
 7. **模型必须由用户明确选择，Agent 不得按价格或主观质量替用户决定。** 用户选定后执行 `--set-video-model "<精确模型ID>"`；每次付费生成前仍刷新目录并复核价格和状态。用户明确给出模型 ID 时，可用 `video --model "<模型ID>"` 临时覆盖。
 8. 配置与选择成功后自动继续用户原任务，不要让用户重新描述需求。
 
-用户只应在自己信任的 Codex 任务里提供凭据，不要发布到 GitHub Issue、公共聊天室或截图中。
+用户只应在自己信任的 Agent 会话里提供凭据，不要发布到 GitHub Issue、公共聊天室或截图中。
+
+凭据保存在 `~/.88api/video-studio.json`（和 88API-image-gen 的 `~/.88api/image-gen.json` 在同一个文件夹，本机所有客户端共用）；0.12.0 之前保存在 `~/.seedance-studio/config.json` 的配置会继续读取，下次保存时写到新位置。**只用 `--get-config` / `preflight` 查看凭据状态**，不要打开、读取、打印或复制这些配置文件，也不要自己把凭据写进命令行或环境变量来绕过沙箱；唯一例外是上面第 4 步：用 `--set-key` / `--set-access-token` 保存一次用户在当前对话里发来的凭据。
 
 ## 项目目录约定
 
@@ -71,7 +75,7 @@ node "<PLUGIN_ROOT>/scripts/studio.mjs" <参数>
 - 开始前运行 `preflight --scope image --json`。只要结果 `ready=true`，直接继续生图；不得再次询问 Key。
 
 ```powershell
-node "<PLUGIN_ROOT>/scripts/studio.mjs" image --prompt "<产品图提示词>" --n 4 --aspect 16:9 --out "<project>/assets"
+node "<SKILL_DIR>/scripts/studio.mjs" image --prompt "<产品图提示词>" --n 4 --aspect 16:9 --out "<project>/assets"
 ```
 
 ## 意图分级（启动前先判断规模，自动分级，别审问用户）
@@ -114,8 +118,8 @@ node "<PLUGIN_ROOT>/scripts/studio.mjs" image --prompt "<产品图提示词>" --
 7. **提交后先返回任务。** Agent交互中一律给 `video` 加 `--no-wait`，拿到任务ID后立刻告诉用户：`视频任务已提交，生成通常需要几分钟。我正在持续监控任务进度，请耐心等待，不要重复提交。`
 
 ```powershell
-node "<PLUGIN_ROOT>/scripts/studio.mjs" video --prompt "<提示词>" --duration 10 --ratio 9:16 --out "<project>/segments/seg01" --no-wait
-node "<PLUGIN_ROOT>/scripts/studio.mjs" status --task <任务ID> --wait --out "<project>/segments/seg01"
+node "<SKILL_DIR>/scripts/studio.mjs" video --prompt "<提示词>" --duration 10 --ratio 9:16 --out "<project>/segments/seg01" --no-wait
+node "<SKILL_DIR>/scripts/studio.mjs" status --task <任务ID> --wait --out "<project>/segments/seg01"
 ```
 
 图生视频仅在所选模型支持时加 `--image <本地图> --require-image`；图片数量上限从实时目录读取。脚本自动轮询下载 MP4。**参考图本身含文字、标注、编号或 Logo 时，必须在提示词中声明“只参考造型/氛围，画面中禁止出现任何文字、数字、标注和 Logo”。**
@@ -127,6 +131,16 @@ node "<PLUGIN_ROOT>/scripts/studio.mjs" status --task <任务ID> --wait --out "<
 9. **交付。** 报告实际模型、价格版本、参考图审计、估算与实际用量、成片路径。失败时读 troubleshooting.md 诊断，**修完原因才允许重交**。
 
 超过所选模型单段上限或多场景需求：切换到 [references/pipeline.md](references/pipeline.md) 的完整管线（规划 → 锚定图 → 分段生成 → `concat` 拼接）。
+
+## 客户端与长任务
+
+一条视频通常要几分钟，`status --wait` 最长会等 25 分钟；很多 Agent 客户端会更早结束 shell 命令。被结束的命令不代表任务失败，任务可能仍在 88API 上生成并计费。因此：
+
+- **Claude Code：** Bash 工具默认 2 分钟、最长 10 分钟就会结束命令。`video`、`status --wait`、`image`、`audio`、`depth`、`concat` 一律用 `run_in_background: true` 后台运行，等完成通知后再汇报；免费的只读命令（`preflight`、`account`、`models`、`--get-config`、`--self-test`、`--dry-run`）可以前台运行。
+- **DeepSeek Harness：** bash 工具超时（默认 120 秒）后会把命令转到后台而不是结束它；等这个后台任务完成，不要再提交一次。
+- **沙箱客户端（DeepSeek Harness、Codex workspace-write 等）：** 项目目录默认在当前工作目录下（`./seedance-projects/`），可以正常写。保存凭据、选择模型这类要写 `~/.88api/` 的命令可能报“配置没有保存……不可写”：请求客户端批准这一条命令写入一次后重试；客户端没法批准（例如无头运行）时告诉用户需要一次批准或普通（非沙箱）会话，然后停止。不要把配置改存到工作目录。
+- **ZCode、Trae、Cursor、Cline 等其它客户端：** 客户端支持后台或长时间命令就用它运行上述付费和等待命令；不支持就运行一次并等待。
+- **任何客户端：** 视频命令被打断、超时或输出不完整时，**不要重新提交**；用 `status --task <任务ID> --wait --out <同一个目录>` 继续查询原任务。任务 ID 在 `--no-wait` 的输出和输出目录的 `run.json` 里。
 
 ## 能力边界：只做单条短片 / TVC，不做多集连续剧
 
@@ -145,8 +159,8 @@ node "<PLUGIN_ROOT>/scripts/studio.mjs" status --task <任务ID> --wait --out "<
 **为什么要③、为什么要分题材**：纯抽帧只能看孤立静帧，分不清人物是走近还是镜头推近、手是拿起还是放下——先做运动 pass 把“动”变可读。但**武器要对题材**：人物有硬几何、深度图能读朝向与层次；风景主体是空间与光，此时该用运镜热图+原帧；武打招式靠**高帧率+多人骨架**拆解。必须向用户说明：反推可以还原提示词结构，但所选生成模型未必支持帧级精确动作复刻。命令：
 
 ```powershell
-node "<PLUGIN_ROOT>/scripts/studio.mjs" depth --video "<视频>" --mode character|landscape|action|auto --out "<project>/analysis"
-node "<PLUGIN_ROOT>/scripts/studio.mjs" audio --video "<视频>" --out "<project>/analysis/audio"   # ⑦ 音频拆解（台词/BGM/音效）
+node "<SKILL_DIR>/scripts/studio.mjs" depth --video "<视频>" --mode character|landscape|action|auto --out "<project>/analysis"
+node "<SKILL_DIR>/scripts/studio.mjs" audio --video "<视频>" --out "<project>/analysis/audio"   # ⑦ 音频拆解（台词/BGM/音效）
 ```
 
 FF 的位置：**ffprobe 只做①，ffmpeg 做②抽帧与③的上色/合成/运动（搬运层）+ ⑦的抽音，人物模式的真深度交给 Depth-Anything V2、武打模式的骨架交给 YOLO-pose、风景模式直接用 ffmpeg 运动热图+原帧、⑦的音频转写+描述交给 Gemini 多模态（88api 无可用 STT 渠道），④⑤⑥的判断永远是 Claude 亲眼看帧**——ffmpeg 不做真深度。产出的 shotlist 与提示词可直接转入功能三或功能一。反推到出片时按上方人物身份路由：原片演员生成新身份；用户另行提供并指定人物则原图直传。好视频光有提示词不够，身份、场景和素材职责都必须绑定。

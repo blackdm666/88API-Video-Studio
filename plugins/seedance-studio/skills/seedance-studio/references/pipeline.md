@@ -31,7 +31,7 @@
 所选模型支持图片参考时，跨段出现的人物、产品、场景先生成锚定图；不支持图片参考的模型必须向用户说明一致性风险，不能偷偷添加参考图：
 
 ```powershell
-node "<PLUGIN_ROOT>/scripts/studio.mjs" image --prompt "<角色/产品/场景的精确描述，含服装、材质、光线>" --aspect 9:16 --out "<project>/assets"
+node "<SKILL_DIR>/scripts/studio.mjs" image --prompt "<角色/产品/场景的精确描述，含服装、材质、光线>" --aspect 9:16 --out "<project>/assets"
 ```
 
 - 每个锚定对象一张图，命名清晰（`assets/girl.png`、`assets/product_front.png`）。
@@ -44,7 +44,7 @@ node "<PLUGIN_ROOT>/scripts/studio.mjs" image --prompt "<角色/产品/场景的
 每段独立目录、提示词存档：
 
 ```powershell
-node "<PLUGIN_ROOT>/scripts/studio.mjs" video --prompt "<segNN 提示词>" --duration <秒> --ratio <比例> --image "<project>/assets/girl.png" --require-image --out "<project>/segments/seg01" --no-wait
+node "<SKILL_DIR>/scripts/studio.mjs" video --prompt "<segNN 提示词>" --duration <秒> --ratio <比例> --image "<project>/assets/girl.png" --require-image --out "<project>/segments/seg01" --no-wait
 ```
 
 - 提示词写入 `prompts/segNN.txt` 后再提交；段内四层结构照常，**全局锁定层各段逐字复用**（同一身份、服装、场景与声音策略描述），并声明每张 `@图片` 的职责。
@@ -56,7 +56,7 @@ node "<PLUGIN_ROOT>/scripts/studio.mjs" video --prompt "<segNN 提示词>" --dur
 ## 阶段 4：拼接
 
 ```powershell
-node "<PLUGIN_ROOT>/scripts/studio.mjs" concat --dir "<project>/segments" --out "<project>/final/final.mp4"
+node "<SKILL_DIR>/scripts/studio.mjs" concat --dir "<project>/segments" --out "<project>/final/final.mp4"
 ```
 
 - 同 API 产出编码一致，默认流复制（无损、秒级完成）；报错时加 `--reencode`。

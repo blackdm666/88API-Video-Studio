@@ -1,5 +1,23 @@
 # 更新记录
 
+## 0.12.0 — 2026-10-26
+
+改名 88API-Video-Studio，并和姊妹插件 88API-Image-Gen 一样适配多种 Agent 客户端。
+
+### 变更
+
+- **改名**：插件显示名改为 88API-Video-Studio，GitHub 仓库改名为 `blackdm666/88API-Video-Studio`（旧地址 `blackdm666/seedance-studio` 自动跳转）。插件 id `seedance-studio`、市场名 `seedance-studio-plugins` 不变，已安装的用户照常升级。
+- **多客户端**：新增 Claude Code / ZCode 插件市场（`.claude-plugin/`）、DeepSeek Harness 插件包（根目录 `package.json` + `dsh/`，「添加插件」填 `github:blackdm666/88API-Video-Studio`）和 Trae 安装方式（`npx skills add blackdm666/88API-Video-Studio -g -a trae -y`）；其它能读 `SKILL.md` 的客户端复制技能文件夹即可。各客户端显示同一个名称、简介和 88API 图标。
+- **技能文件夹自带脚本**：`scripts/` 移进 `skills/seedance-studio/`，技能文件夹单独复制到任何客户端都能运行；命令改为 `node "<SKILL_DIR>/scripts/studio.mjs"`。
+- **凭据位置与共用 Key**：配置改存 `~/.88api/video-studio.json`，和 88API-Image-Gen 的 `~/.88api/image-gen.json` 同一个文件夹；旧的 `~/.seedance-studio/config.json` 继续读取，下次保存时写到新位置。API Key 依次复用 `SEEDANCE_STUDIO_API_KEY`、`API88_KEY`、本插件配置、88API-Image-Gen 的 Key 和旧版位置。`API88_CONFIG_DIR` 可改配置目录。
+- **沙箱客户端**：DeepSeek Harness、Codex workspace-write 等不允许写 `~/.88api/` 时，保存凭据和选模型会提示“配置没有保存”并说明需要客户端批准一次，不再抛出报错，也不会改存到工作目录；首次介绍标记写不进时只提示、不打断任务。
+- **长任务**：技能说明新增“客户端与长任务”：Claude Code 后台运行视频、等待和生图命令；DeepSeek Harness 等超时转后台的客户端不要重复提交；中断后用 `status --task` 续查原任务。
+- 新增 `--version`，`--get-config` 显示插件版本；提示语不再假设只在 Codex 里使用。
+
+### 验证
+
+- 本地回归：原有 29 项 + 共用 `~/.88api/image-gen.json` Key 的测试，以及 `dsh/package.test.mjs` 的版本号、名称、简介、图标和 id 一致性检查。
+
 ## 0.11.0 — 2026-09-17
 
 适配 88API 于 2026-09-15 更新的视频任务协议。NewAPI 内部改为任务插件后，部分模型的目录端点仍标为 `openai`，旧版会误判为不兼容；价格改为按秒表达式后，旧版也会误读为 Token 计价。本版本更新模型识别、计价和完整生成流程。
