@@ -3,7 +3,7 @@ name: seedance-studio
 description: 三大工作流的一站式 88API 短片工作室：实时获取视频模型、价格、能力与账户/API Key 状态，让用户选模型后生成；默认用 gemini-3.7-flash 拆解视频音频，用 gpt-image-2 生成产品图、角色图、关键帧和锚定图，可明确选择 gpt-image-2.5-flare 或 gpt-image-2.5-sunburst（插件 2K 预设），只有用户明确要求4K才用 gpt-image-2-4k。用于：①想法→完整成片；②视频→证据优先反推；③视频→可复刻工程包；以及用户明确调用本插件生成产品图、视频素材图或关键帧。触发词包括出片、生视频、短片、TVC、广告、分镜、产品图、角色设定图、图生视频、反推、复刻、Seedance、可灵、Wan、Grok。只有用户明确指定Nano Banana或Gemini生图时才转交Gemini图片插件。
 ---
 
-# Seedance Studio
+# 88API-Video-Studio
 
 把一句话或一条参考视频变成成片。用户不需要懂模式、参数或提示词术语——翻译工作全部由你完成。
 
@@ -63,7 +63,7 @@ node "<PLUGIN_ROOT>/scripts/studio.mjs" <参数>
 
 ## 图片生成路由（强制）
 
-- 用户明确调用 88API-Seedance-Studio 生成产品图、角色图、场景图、关键帧或锚定图时，使用本插件的 `image` 子命令，不得自动转去 Nano Banana。
+- 用户明确调用 88API-Video-Studio 生成产品图、角色图、场景图、关键帧或锚定图时，使用本插件的 `image` 子命令，不得自动转去 Nano Banana。
 - 出厂默认模型为 `gpt-image-2`；普通生图省略 `--model`，CLI 使用已保存模型或出厂默认值。
 - 用户点名 `gpt-image-2.5-flare` 或 `gpt-image-2.5-sunburst` 时传入对应精确 ID；两者使用插件 2K 预设，支持文生图与 `--ref` 编辑。若同时要求 4K，先说明当前插件仅暴露该模型的 2K 预设，不要擅自替换模型。
 - 只有用户明确要求“4K”且未指定其它模型，或点名 `gpt-image-2-4k` 时，才为本次调用传 `--model gpt-image-2-4k`。

@@ -1,4 +1,4 @@
-# 88API-Seedance-Studio
+# 88API-Video-Studio
 
 一句话出片的 Codex 集合插件：实时读取 [88api.ai](https://88api.ai/) 当前视频模型、价格、能力与可用状态，由用户选择模型后生成单条短片或 TVC/广告片。
 
@@ -66,7 +66,7 @@
 
 ### 2. 创建生成 API Key
 
-进入“API 密钥”页面，点击“创建 API 密钥”。名称可以自定义（例如 `Seedance Studio`），分组建议选择 `auto`（自动分组），以便同时调用 Seedance 视频模型和 Image-2 关键帧模型。如需在当前分组请求失败时继续尝试下一分组，可以开启“跨分组重试”。
+进入“API 密钥”页面，点击“创建 API 密钥”。名称可以自定义（例如 `Video Studio`），分组建议选择 `auto`（自动分组），以便同时调用 Seedance 视频模型和 Image-2 关键帧模型。如需在当前分组请求失败时继续尝试下一分组，可以开启“跨分组重试”。
 
 ![创建 88API Key](docs/assets/88api-create-image-key.png)
 
@@ -82,7 +82,7 @@
 
 ### 5. 让 Agent 一键配置（推荐）
 
-安装插件后直接向 **88API-Seedance-Studio** 描述视频需求。Agent 会先介绍插件用法并检查两项凭据。**推荐把 API Key 和个人访问令牌直接交给当前受信任任务中的 Agent**，它会自动保存、脱敏验证、查询余额并显示实时模型列表；验证通过后不会要求撤销或重新创建凭据。你不愿在聊天中发送个人访问令牌时，再改用隐藏输入助手。
+安装插件后直接向 **88API-Video-Studio** 描述视频需求。Agent 会先介绍插件用法并检查两项凭据。**推荐把 API Key 和个人访问令牌直接交给当前受信任任务中的 Agent**，它会自动保存、脱敏验证、查询余额并显示实时模型列表；验证通过后不会要求撤销或重新创建凭据。你不愿在聊天中发送个人访问令牌时，再改用隐藏输入助手。
 
 聊天配置的 API Key、个人访问令牌与模型选择保存在本机权限受限的 `~/.seedance-studio/config.json`；隐藏输入方式则把访问令牌保存到 `SEEDANCE_STUDIO_ACCESS_TOKEN` Windows 用户环境变量。Agent 不会在回复中显示完整凭据；账户、目录和自检不会发起付费生成。
 
@@ -115,9 +115,9 @@ node plugins/seedance-studio/scripts/studio.mjs --caps
 4. 在 Codex 新任务里说人话：
 
 ```text
-@88API-Seedance-Studio 做一个 45 秒的竖屏治愈短片：雨夜女孩把流浪猫带回家。
-@88API-Seedance-Studio 反推这条视频的提示词：D:\videos\ref.mp4
-@88API-Seedance-Studio 给我这条视频的复刻工程包，我想换成我自己的产品：D:\videos\hot.mp4
+@88API-Video-Studio 做一个 45 秒的竖屏治愈短片：雨夜女孩把流浪猫带回家。
+@88API-Video-Studio 反推这条视频的提示词：D:\videos\ref.mp4
+@88API-Video-Studio 给我这条视频的复刻工程包，我想换成我自己的产品：D:\videos\hot.mp4
 ```
 
 ## CLI 直接使用（可选）
